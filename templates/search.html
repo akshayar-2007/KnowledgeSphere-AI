@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<title>Search Knowledge</title>
+
+<link rel="stylesheet" href="/static/style.css">
+
+</head>
+
+<body>
+
+<h1>Search Knowledge</h1>
+
+<form method="post">
+
+<input
+class="search-box"
+type="text"
+name="query"
+placeholder="Ask your question..."
+value="{{search_query}}"
+required
+>
+
+<select name="domain">
+<option value="all" {% if selected_domain == "all" %}selected{% endif %}>
+All Domains
+</option>
+{% for d in domains %}
+<option value="{{d}}" {% if selected_domain == d %}selected{% endif %}>
+{{d}}
+</option>
+{% endfor %}
+</select>
+
+{% if can_filter_audience %}
+<select name="audience">
+<option value="all" {% if selected_audience == "all" %}selected{% endif %}>
+All Accessible Audiences
+</option>
+{% for code, label in audience_options %}
+{% if code != "all" %}
+<option value="{{code}}" {% if selected_audience == code %}selected{% endif %}>
+{{label}}
+</option>
+{% endif %}
+{% endfor %}
+</select>
+{% endif %}
+
+<button type="submit">Search</button>
+
+</form>
+
+
+{% if request.method == "POST" %}
+<p>
+Searching in:
+{% if selected_domain == "all" %}
+All Domains
+{% else %}
+{{selected_domain}}
+{% endif %}
+</p>
+{% if can_filter_audience %}
+<p>
+Audience filter:
+{% if selected_audience == "all" %}
+All Accessible Audiences
+{% else %}
+{{selected_audience.title()}}
+{% endif %}
+</p>
+{% endif %}
+{% endif %}
+
+
+{% if results %}
+
+<h2>Search Results</h2>
+
+<div class="library-grid">
+
+{% for r in results %}
+
+<div class="library-card">
+
+<h3>{{r.document}}</h3>
+
+<p class="score">Match Score: {{r.score}}%</p>
+<p class="category">Domain: {{r.domain}}</p>
+<p class="category">Audience: {{r.audience}}</p>
+{% if r.keywords %}
+<p class="tags">Keywords: {{r.keywords}}</p>
+{% endif %}
+
+<p class="snippet">
+{{r.snippet}}...
+</p>
+
+<div class="doc-buttons">
+
+<a href="/preview/{{r.document}}" target="_blank">
+Preview
+</a>
+
+<a href="/download/{{r.document}}">
+Download
+</a>
+
+</div>
+
+</div>
+
+{% endfor %}
+
+</div>
+
+{% else %}
+
+{% if request.method == "POST" %}
+
+<p class="no-results">
+No relevant documents found.
+</p>
+
+{% endif %}
+
+{% endif %}
+
+
+<a href="/dashboard" class="back-btn">Back to Dashboard</a>
+
+
+</body>
+
+</html>

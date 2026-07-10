@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>{{role_label}} Dashboard</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+
+<h1>{{role_label}} Dashboard</h1>
+<p>Welcome, {{username}}</p>
+
+<div class="stats">
+<div class="stat-card">
+<h3>{{stats.doc_count}}</h3>
+<p>Accessible Documents</p>
+</div>
+
+<div class="stat-card">
+<h3>{{stats.domain_count}}</h3>
+<p>Knowledge Domains</p>
+</div>
+
+{% if role == "administrator" %}
+<div class="stat-card">
+<h3>{{stats.user_count}}</h3>
+<p>Registered Stakeholders</p>
+</div>
+{% endif %}
+</div>
+
+<div class="dashboard">
+{% if can_upload_docs %}
+<div class="dash-card">
+<h2>Upload Documents</h2>
+<p>Add new PDFs with domain and audience controls.</p>
+<a href="/upload">Upload</a>
+</div>
+{% endif %}
+
+<div class="dash-card">
+<h2>Semantic Search</h2>
+<p>Find relevant documents using AI-powered retrieval.</p>
+<a href="/search">Search</a>
+</div>
+
+<div class="dash-card">
+<h2>Document Library</h2>
+<p>Browse available documents by domain.</p>
+<a href="/documents">Open Library</a>
+</div>
+
+{% if can_manage_domain %}
+<div class="dash-card">
+<h2>Manage Domains</h2>
+<p>Create and organize domain categories.</p>
+<a href="/domains">Manage</a>
+</div>
+{% endif %}
+
+<div class="dash-card">
+<h2>Logout</h2>
+<p>Sign out of the portal session.</p>
+<a href="/logout">Logout</a>
+</div>
+</div>
+
+{% if stats.recent_docs %}
+<h2>Recently Added</h2>
+<div class="library-grid">
+{% for doc, domain, created_at in stats.recent_docs %}
+<div class="library-card">
+<h3>{{doc}}</h3>
+<p class="category">{{domain}}</p>
+{% if created_at %}
+<p class="tags">{{created_at}}</p>
+{% endif %}
+<div class="doc-buttons">
+<a href="/preview/{{doc}}" target="_blank">Preview</a>
+</div>
+</div>
+{% endfor %}
+</div>
+{% endif %}
+
+</body>
+</html>

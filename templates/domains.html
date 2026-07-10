@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<title>Manage Domains</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+
+<h1>Create Domain</h1>
+{% if error %}
+<p style="color:#c0392b;">{{error}}</p>
+{% endif %}
+{% if message %}
+<p style="color:#1f7a1f;">{{message}}</p>
+{% endif %}
+
+<form method="post">
+
+<input type="text" name="name" placeholder="Domain Name" required>
+
+<button type="submit">
+Add Domain
+</button>
+
+</form>
+
+<h2>Existing Domains</h2>
+
+<ul>
+
+{% for d in domains %}
+
+<li>{{d[0]}}</li>
+
+{% endfor %}
+
+</ul>
+
+<a href="/dashboard">Back</a>
+
+</body>
+
+</html>

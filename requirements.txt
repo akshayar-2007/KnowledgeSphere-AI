@@ -1,0 +1,9 @@
+flask
+PyPDF2
+sentence-transformers
+scikit-learn
+numpy
+faiss-cpu
+keybert
+transformers
+torch

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<title>Document Library</title>
+<link rel="stylesheet" href="/static/style.css">
+
+<script>
+
+function filterCategory(cat){
+
+    let cards = document.getElementsByClassName("doc-card");
+
+    for(let c of cards){
+
+        if(cat==="All" || c.dataset.cat===cat)
+            c.style.display="block";
+        else
+            c.style.display="none";
+    }
+
+}
+
+</script>
+
+</head>
+
+<body>
+
+<h1>Document Library</h1>
+
+<div class="category-bar">
+
+<button onclick="filterCategory('All')">All</button>
+
+{% for cat in categories %}
+
+<button onclick="filterCategory('{{cat}}')">
+
+{{cat}}
+
+</button>
+
+{% endfor %}
+
+</div>
+
+
+<div class="library-grid">
+
+{% for category,docs in data.items() %}
+
+{% for doc in docs %}
+
+<div class="doc-card" data-cat="{{category}}">
+
+<h3>{{doc.name}}</h3>
+
+<p class="category">{{category}}</p>
+<p class="category">Audience: {{doc.audience}}</p>
+{% if doc.keywords %}
+<p class="tags">Keywords: {{doc.keywords}}</p>
+{% endif %}
+{% if doc.created_at %}
+<p class="tags">Uploaded: {{doc.created_at}}</p>
+{% endif %}
+
+<div class="doc-buttons">
+
+<a href="/preview/{{doc.name}}" target="_blank">
+
+Preview
+
+</a>
+
+<a href="/download/{{doc.name}}">
+
+Download
+
+</a>
+
+</div>
+
+</div>
+
+{% endfor %}
+
+{% endfor %}
+
+</div>
+
+
+<a href="/dashboard" class="back-btn">Back</a>
+
+</body>
+
+</html>
