@@ -1,45 +1,64 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
-<title>Manage Domains</title>
-<link rel="stylesheet" href="/static/style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manage Domains — KnowledgeSphere AI</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <style>
+    .domains-page { width: min(700px, 100%); margin: 0 auto; }
+    .domain-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 18px; background: rgba(33,38,45,0.8);
+      border: 1px solid rgba(48,54,61,0.8); border-radius: 12px;
+      margin-bottom: 10px; color: #e6edf3; font-weight: 500;
+      transition: border-color 0.2s;
+    }
+    .domain-item:hover { border-color: rgba(88,166,255,0.4); }
+    .domain-icon { font-size: 1.2rem; margin-right: 10px; }
+  </style>
 </head>
-
 <body>
 
-<h1>Create Domain</h1>
-{% if error %}
-<p style="color:#c0392b;">{{error}}</p>
-{% endif %}
-{% if message %}
-<p style="color:#1f7a1f;">{{message}}</p>
-{% endif %}
+<div class="domains-page animate-in">
+  <h1>🗂️ Manage Domains</h1>
+  <p>Create knowledge domain categories to organize institutional documents.</p>
 
-<form method="post">
+  {% if message %}
+  <div class="alert alert-success"><span>✅</span> {{ message }}</div>
+  {% endif %}
+  {% if error %}
+  <div class="alert alert-danger"><span>⚠️</span> {{ error }}</div>
+  {% endif %}
 
-<input type="text" name="name" placeholder="Domain Name" required>
+  <!-- Add Domain Form -->
+  <div style="background: rgba(22,27,34,0.9); border: 1px solid rgba(48,54,61,0.8); border-radius: 18px; padding: 24px; margin: 20px 0;">
+    <h2 style="margin-bottom: 16px; font-size: 1.0rem; color: #8b949e; text-transform: uppercase; letter-spacing: 0.8px;">Add New Domain</h2>
+    <form method="post" style="border:none; box-shadow:none; padding:0; margin:0; background:transparent; display:grid; gap:12px; width:100%;">
+      <div>
+        <label for="domain-name">Domain Name</label>
+        <input type="text" id="domain-name" name="name" placeholder="e.g. Computer Science, Biology, Law" required>
+      </div>
+      <button type="submit" id="add-domain-btn">+ Add Domain</button>
+    </form>
+  </div>
 
-<button type="submit">
-Add Domain
-</button>
+  <!-- Existing Domains -->
+  <h2 style="margin-bottom: 14px; text-align: left;">Existing Domains ({{ domains|length }})</h2>
+  {% if domains %}
+  <div>
+    {% for row in domains %}
+    <div class="domain-item">
+      <span><span class="domain-icon">📂</span> {{ row[0] }}</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="alert alert-warning"><span>⚠️</span> No domains created yet.</div>
+  {% endif %}
 
-</form>
-
-<h2>Existing Domains</h2>
-
-<ul>
-
-{% for d in domains %}
-
-<li>{{d[0]}}</li>
-
-{% endfor %}
-
-</ul>
-
-<a href="/dashboard">Back</a>
+  <a href="/dashboard" class="back-btn" style="margin-top: 24px; display: inline-flex;">← Back to Dashboard</a>
+</div>
 
 </body>
-
 </html>

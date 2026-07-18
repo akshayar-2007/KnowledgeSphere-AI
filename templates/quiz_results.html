@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Quiz results and detailed answer explanations — KnowledgeSphere AI assessment platform.">
+  <title>Assessment Results — KnowledgeSphere AI</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <style>
+    .results-page { max-width: 840px; margin: 0 auto; }
+
+    /* Score Card */
+    .score-summary {
+      background: rgba(22,27,34,0.95); border: 1px solid rgba(48,54,61,0.8);
+      border-radius: 24px; padding: 40px; margin-bottom: 32px; text-align: center;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.6);
+      position: relative; overflow: hidden;
+    }
+    .score-summary::before {
+      content: ''; position: absolute; top: -60px; right: -60px;
+      width: 200px; height: 200px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(88,166,255,0.12), transparent 70%);
+    }
+    .score-ring-wrap { position: relative; width: 140px; height: 140px; margin: 0 auto 24px; }
+    .score-ring-bg { width: 140px; height: 140px; border-radius: 50%; position: absolute; inset:0; }
+    .score-inner {
+      position: absolute; inset: 14px; border-radius: 50%;
+      background: rgba(22,27,34,0.98);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+    }
+    .score-num   { font-size: 2rem; font-weight: 900; color: #e6edf3; line-height: 1; }
+    .score-lbl   { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1.2px; color: #8b949e; margin-top: 4px; }
+    .grade-badge {
+      display: inline-flex; align-items: center; gap: 8px; padding: 6px 20px;
+      border-radius: 999px; font-size: 1rem; font-weight: 800; margin-bottom: 12px;
+    }
+    .grade-a { background: rgba(57,211,83,0.15);  border: 1px solid rgba(57,211,83,0.4);  color: #39d353; }
+    .grade-b { background: rgba(88,166,255,0.15); border: 1px solid rgba(88,166,255,0.4); color: #58a6ff; }
+    .grade-c { background: rgba(227,179,65,0.15); border: 1px solid rgba(227,179,65,0.4); color: #e3b341; }
+    .grade-f { background: rgba(247,129,102,0.15);border: 1px solid rgba(247,129,102,0.4);color: #f78166; }
+    .score-breakdown {
+      display: flex; justify-content: center; gap: 32px; margin-top: 20px; flex-wrap: wrap;
+    }
+    .score-breakdown-item { text-align: center; }
+    .score-breakdown-item .val { font-size: 1.5rem; font-weight: 800; color: #e6edf3; }
+    .score-breakdown-item .key { font-size: 0.75rem; color: #8b949e; text-transform: uppercase; letter-spacing: 0.8px; }
+
+    /* Result Cards */
+    .result-card {
+      background: rgba(22,27,34,0.9); border: 1px solid rgba(48,54,61,0.8);
+      border-radius: 18px; padding: 24px; margin-bottom: 16px; text-align: left;
+      border-left: 5px solid rgba(48,54,61,0.8); transition: border-left-color 0.3s;
+      max-width: 100%; box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+    }
+    .result-card.correct   { border-left-color: #39d353; }
+    .result-card.incorrect { border-left-color: #f78166; }
+    .result-q-header {
+      display: flex; align-items: flex-start; gap: 12px; margin-bottom: 16px;
+    }
+    .result-q-num {
+      width: 28px; height: 28px; border-radius: 50%; display: flex;
+      align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 800;
+      flex-shrink: 0;
+    }
+    .result-q-num.correct  { background: rgba(57,211,83,0.15);  color: #39d353; border: 1px solid rgba(57,211,83,0.3); }
+    .result-q-num.incorrect{ background: rgba(247,129,102,0.15); color: #f78166; border: 1px solid rgba(247,129,102,0.3); }
+    .option-row {
+      padding: 10px 14px; border-radius: 10px; margin-bottom: 6px;
+      font-size: 0.9rem; border: 1px solid transparent; transition: all 0.2s;
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      background: rgba(33,38,45,0.6);
+    }
+    .option-row.correct-choice  { background: rgba(57,211,83,0.1);  border-color: rgba(57,211,83,0.3);  color: #39d353; }
+    .option-row.incorrect-choice{ background: rgba(247,129,102,0.1); border-color: rgba(247,129,102,0.3); color: #f78166; }
+    .option-row .opt-label { flex: 1; }
+    .opt-mark { font-weight: 800; font-size: 0.85rem; white-space: nowrap; }
+    .explanation-box {
+      margin-top: 16px; padding: 16px 18px;
+      background: rgba(88,166,255,0.06); border-radius: 10px;
+      border-left: 3px solid #58a6ff; font-size: 0.88rem; color: #8b949e; line-height: 1.7;
+    }
+    .explanation-box strong { color: #58a6ff; }
+    .cta-row { display: flex; justify-content: center; gap: 14px; margin-top: 32px; flex-wrap: wrap; }
+  </style>
+</head>
+<body>
+
+<div class="results-page animate-in">
+  <h1>Assessment Complete!</h1>
+  <p>Source: <strong style="color: #58a6ff;">{{ document }}</strong></p>
+
+  <!-- Score Summary -->
+  <div class="score-summary">
+    <div class="score-ring-wrap">
+      <svg class="score-ring-bg" viewBox="0 0 140 140" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="70" cy="70" r="60" fill="none" stroke="rgba(48,54,61,0.8)" stroke-width="14"/>
+        <circle cx="70" cy="70" r="60" fill="none"
+          stroke="{% if percent >= 80 %}#39d353{% elif percent >= 60 %}#58a6ff{% elif percent >= 40 %}#e3b341{% else %}#f78166{% endif %}"
+          stroke-width="14" stroke-linecap="round"
+          stroke-dasharray="{{ (percent / 100 * 376.99)|round(1) }} 376.99"
+          transform="rotate(-90 70 70)"/>
+      </svg>
+      <div class="score-inner">
+        <span class="score-num">{{ score }}/{{ total }}</span>
+        <span class="score-lbl">Score</span>
+      </div>
+    </div>
+
+    <div class="grade-badge
+      {% if percent >= 80 %}grade-a
+      {% elif percent >= 65 %}grade-b
+      {% elif percent >= 50 %}grade-c
+      {% else %}grade-f{% endif %}">
+      {% if percent >= 80 %}🏆 Excellent — {{ percent }}%
+      {% elif percent >= 65 %}✅ Good — {{ percent }}%
+      {% elif percent >= 50 %}📈 Passing — {{ percent }}%
+      {% else %}📚 Needs Review — {{ percent }}%{% endif %}
+    </div>
+
+    <p style="color: #8b949e; max-width: 420px; margin: 8px auto 0;">
+      {% if percent >= 80 %}Outstanding! You have mastered the content of this document.
+      {% elif percent >= 65 %}Good work! You have a solid understanding of the material.
+      {% elif percent >= 50 %}Decent effort! Review the explanations below to strengthen your knowledge.
+      {% else %}Keep going! Study the source document and retake the quiz to improve.{% endif %}
+    </p>
+
+    <div class="score-breakdown">
+      <div class="score-breakdown-item">
+        <div class="val" style="color: #39d353;">{{ score }}</div>
+        <div class="key">Correct</div>
+      </div>
+      <div class="score-breakdown-item">
+        <div class="val" style="color: #f78166;">{{ total - score }}</div>
+        <div class="key">Incorrect</div>
+      </div>
+      <div class="score-breakdown-item">
+        <div class="val">{{ total }}</div>
+        <div class="key">Total</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detailed Results -->
+  {% for res in results %}
+  <div class="result-card {% if res.is_correct %}correct{% else %}incorrect{% endif %} animate-in"
+       style="animation-delay: {{ (loop.index0 * 0.06)|round(2) }}s;">
+
+    <div class="result-q-header">
+      <span class="result-q-num {% if res.is_correct %}correct{% else %}incorrect{% endif %}">
+        {{ loop.index }}
+      </span>
+      <div>
+        <span class="badge {% if res.is_correct %}correct{% else %}incorrect{% endif %}" style="margin-bottom: 10px;">
+          {% if res.is_correct %}✓ Correct{% else %}✗ Incorrect{% endif %}
+        </span>
+        <h3 style="font-size: 1rem; font-weight: 700; margin-top: 4px;">{{ res.question }}</h3>
+      </div>
+    </div>
+
+    <div class="options-list">
+      {% for opt in res.options %}
+      {% set label_char = ("A" if loop.index == 1 else "B" if loop.index == 2 else "C" if loop.index == 3 else "D") %}
+      {% set is_correct = (label_char == res.correct) %}
+      {% set is_user    = (label_char == res.user) %}
+
+      <div class="option-row
+        {% if is_correct %}correct-choice
+        {% elif is_user and not res.is_correct %}incorrect-choice{% endif %}">
+        <span class="opt-label"><strong>{{ label_char }}.</strong> {{ opt }}</span>
+        {% if is_correct %}
+        <span class="opt-mark" style="color: #39d353;">✓ Correct</span>
+        {% elif is_user and not res.is_correct %}
+        <span class="opt-mark" style="color: #f78166;">✗ Your Answer</span>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+
+    {% if res.explanation %}
+    <div class="explanation-box">
+      <strong>💡 Explanation:</strong> {{ res.explanation }}
+    </div>
+    {% endif %}
+  </div>
+  {% endfor %}
+
+  <!-- CTA Buttons -->
+  <div class="cta-row">
+    <a href="/quiz" class="back-btn" id="retake-btn"
+       style="background: linear-gradient(135deg, #6f2da8, #bc8cff); color: #fff; border: none;">
+      🤖 Generate Another Quiz
+    </a>
+    <a href="/documents" class="back-btn" id="library-btn">📚 Document Library</a>
+    <a href="/dashboard" class="back-btn" id="dash-btn">← Dashboard</a>
+  </div>
+
+</div>
+
+</body>
+</html>

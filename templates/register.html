@@ -1,43 +1,51 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<title>Sign Up</title>
-<link rel="stylesheet" href="/static/style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Create your KnowledgeSphere AI account. Join as a student, faculty member, researcher, or administrator.">
+  <title>Create Account — KnowledgeSphere AI</title>
+  <link rel="stylesheet" href="/static/style.css">
 </head>
-
 <body>
 
-<div class="auth-container">
+<div class="auth-container animate-in">
+  <span class="auth-logo">🌌</span>
+  <h1 style="-webkit-text-fill-color: inherit; background: none; color: #e6edf3; font-size: 1.7rem;">Create Account</h1>
+  <p style="font-size: 0.88rem; margin-bottom: 4px;">Join KnowledgeSphere AI and access institutional knowledge.</p>
 
-<h2>Create Account</h2>
-{% if error %}
-<p style="color:#c0392b;">{{error}}</p>
-{% endif %}
+  {% if error %}
+  <div class="alert alert-danger" style="margin-top: 14px;">
+    <span>⚠️</span> {{ error }}
+  </div>
+  {% endif %}
 
-<form method="post">
+  <form method="post" style="box-shadow: none; border: none; padding: 0; background: transparent; width: 100%; margin: 16px 0 0;">
+    <div>
+      <label for="reg-username">Username</label>
+      <input type="text" id="reg-username" name="username" placeholder="Choose a username" required autocomplete="username">
+    </div>
+    <div>
+      <label for="reg-password">Password</label>
+      <input type="password" id="reg-password" name="password" placeholder="Create a password" required autocomplete="new-password">
+    </div>
+    <div>
+      <label for="reg-role">Your Role</label>
+      <select id="reg-role" name="role" required>
+        <option value="">— Select your role —</option>
+        {% for role in roles %}
+        <option value="{{ role }}">{{ role.title() }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button type="submit" id="signup-btn" style="margin-top: 6px;">
+      ✨ Create Account
+    </button>
+  </form>
 
-<input type="text" name="username" placeholder="Username" required>
-
-<input type="password" name="password" placeholder="Password" required>
-
-<select name="role" required>
-
-<option value="">Select Role</option>
-{% for role in roles %}
-<option value="{{role}}">{{role.title()}}</option>
-{% endfor %}
-
-</select>
-
-<button type="submit">Sign Up</button>
-
-</form>
-
-<p class="switch">
-Already have an account?
-<a href="/">Sign In</a>
-</p>
-
+  <p class="switch">
+    Already have an account? <a href="/">Sign in →</a>
+  </p>
 </div>
 
 </body>

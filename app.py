@@ -7,7 +7,16 @@ import sqlite3
 
 import numpy as np
 import PyPDF2
+import docx
+from pptx import Presentation
+import openpyxl
 from flask import Flask, abort, redirect, render_template, request, send_from_directory, session
+from google import genai
+from dotenv import load_dotenv
+
+load_dotenv()
+
+
 from keybert import KeyBERT
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
@@ -21,12 +30,18 @@ app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 try:
-    model = SentenceTransformer("all-MiniLM-L6-v2", local_files_only=True)
+    # Try loading normally (will download if online and not cached)
+    model = SentenceTransformer("all-MiniLM-L6-v2")
     kw_model = KeyBERT(model)
 except Exception:
-    # Offline fallback: app still works with deterministic hashed embeddings.
-    model = None
-    kw_model = None
+    try:
+        # Try offline local files only fallback
+        model = SentenceTransformer("all-MiniLM-L6-v2", local_files_only=True)
+        kw_model = KeyBERT(model)
+    except Exception:
+        # Offline fallback: app still works with deterministic hashed embeddings.
+        model = None
+        kw_model = None
 
 VALID_ROLES = ("student", "faculty", "administrator", "researcher")
 ROLE_LABELS = {
@@ -108,6 +123,18 @@ def init_db():
         )
         """
     )
+
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS quizzes(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            document TEXT,
+            questions_json TEXT,
+            created_at TEXT
+        )
+        """
+    )
+
 
     # Migration support for old DBs.
     ensure_column(cur, "knowledge", "audience", "TEXT DEFAULT 'all'")
@@ -211,6 +238,61 @@ def extract_text_from_pdf(filepath):
             if page_text:
                 text += page_text + "\n"
     return text
+
+
+def extract_text_from_docx(filepath):
+    doc = docx.Document(filepath)
+    full_text = []
+    for paragraph in doc.paragraphs:
+        if paragraph.text.strip():
+            full_text.append(paragraph.text)
+    for table in doc.tables:
+        for row in table.rows:
+            row_text = [cell.text.strip() for cell in row.cells if cell.text.strip()]
+            if row_text:
+                full_text.append(" | ".join(row_text))
+    return "\n".join(full_text)
+
+
+def extract_text_from_pptx(filepath):
+    prs = Presentation(filepath)
+    text_runs = []
+    for i, slide in enumerate(prs.slides):
+        slide_text = []
+        for shape in slide.shapes:
+            if shape.has_text_frame:
+                for paragraph in shape.text_frame.paragraphs:
+                    for run in paragraph.runs:
+                        if run.text.strip():
+                            slide_text.append(run.text.strip())
+        if slide_text:
+            text_runs.append(f"[Slide {i+1}] " + " ".join(slide_text))
+    return "\n".join(text_runs)
+
+
+def extract_text_from_xlsx(filepath):
+    wb = openpyxl.load_workbook(filepath, data_only=True)
+    text_runs = []
+    for sheet_name in wb.sheetnames:
+        sheet = wb[sheet_name]
+        sheet_text = []
+        for row in sheet.iter_rows(values_only=True):
+            row_vals = [str(val).strip() for val in row if val is not None]
+            if row_vals:
+                sheet_text.append(" | ".join(row_vals))
+        if sheet_text:
+            text_runs.append(f"[Sheet: {sheet_name}]\n" + "\n".join(sheet_text))
+    return "\n\n".join(text_runs)
+
+
+def extract_text_from_txt(filepath):
+    try:
+        with open(filepath, "r", encoding="utf-8") as f:
+            return f.read()
+    except UnicodeDecodeError:
+        with open(filepath, "r", encoding="latin-1") as f:
+            return f.read()
+
 
 
 def split_into_chunks(text, chunk_size=180, overlap=40):
@@ -464,7 +546,7 @@ def upload():
     conn.close()
 
     if request.method == "POST":
-        files = request.files.getlist("pdf")
+        files = request.files.getlist("files") or request.files.getlist("pdf")
         domain = request.form["domain"]
         audience = request.form.get("audience", "all")
         manual_keywords = request.form.get("keywords", "").strip()
@@ -484,14 +566,27 @@ def upload():
         for file in files:
             if not file.filename:
                 continue
-            if not file.filename.lower().endswith(".pdf"):
+            filename_lower = file.filename.lower()
+            if not filename_lower.endswith((".pdf", ".docx", ".pptx", ".xlsx", ".txt")):
                 continue
 
             filename = os.path.basename(file.filename)
             filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
             file.save(filepath)
 
-            text = extract_text_from_pdf(filepath)
+            if filename_lower.endswith(".pdf"):
+                text = extract_text_from_pdf(filepath)
+            elif filename_lower.endswith(".docx"):
+                text = extract_text_from_docx(filepath)
+            elif filename_lower.endswith(".pptx"):
+                text = extract_text_from_pptx(filepath)
+            elif filename_lower.endswith(".xlsx"):
+                text = extract_text_from_xlsx(filepath)
+            elif filename_lower.endswith(".txt"):
+                text = extract_text_from_txt(filepath)
+            else:
+                text = ""
+
             chunks = split_into_chunks(text)
             if not chunks:
                 continue
@@ -617,7 +712,7 @@ def search():
             for (doc, domain, text, audience, keywords), score in ranked:
                 if doc in seen_documents:
                     continue
-                if score < 0.30:
+                if score < 0.05:
                     continue
 
                 results.append(
@@ -746,11 +841,305 @@ def domains():
     return render_template("domains.html", domains=rows, message=message, error=error)
 
 
+# ---------------- AI QUIZ GENERATOR ----------------
+@app.route("/quiz", methods=["GET"])
+@login_required
+def quiz_dashboard():
+    role = normalize_role(session.get("role"))
+    allowed = tuple(allowed_audiences_for_role(role))
+    placeholders = ",".join(["?"] * len(allowed))
+
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        f"SELECT DISTINCT document, domain FROM knowledge WHERE audience IN ({placeholders}) ORDER BY document",
+        allowed,
+    )
+    docs = cur.fetchall()
+
+    cur.execute("SELECT id, document, created_at FROM quizzes ORDER BY id DESC")
+    all_quizzes = cur.fetchall()
+    conn.close()
+
+    accessible_docs = {doc[0] for doc in docs}
+    user_quizzes = [q for q in all_quizzes if q[1] in accessible_docs]
+
+    has_env_key = bool(os.environ.get("GEMINI_API_KEY"))
+
+    return render_template(
+        "quiz_generator.html",
+        docs=docs,
+        quizzes=user_quizzes,
+        has_env_key=has_env_key,
+        role=role,
+    )
+
+
+@app.route("/quiz/generate", methods=["POST"])
+@login_required
+def quiz_generate():
+    document = request.form.get("document", "").strip()
+    num_questions = int(request.form.get("num_questions", "5"))
+    custom_api_key = request.form.get("custom_api_key", "").strip()
+
+    role = normalize_role(session.get("role"))
+    if not is_document_accessible(document, role):
+        return abort(403)
+
+    api_key = custom_api_key or os.environ.get("GEMINI_API_KEY")
+    if not api_key:
+        allowed = tuple(allowed_audiences_for_role(role))
+        placeholders = ",".join(["?"] * len(allowed))
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute(
+            f"SELECT DISTINCT document, domain FROM knowledge WHERE audience IN ({placeholders}) ORDER BY document",
+            allowed,
+        )
+        docs = cur.fetchall()
+        cur.execute("SELECT id, document, created_at FROM quizzes ORDER BY id DESC")
+        all_quizzes = cur.fetchall()
+        conn.close()
+        accessible_docs = {doc[0] for doc in docs}
+        user_quizzes = [q for q in all_quizzes if q[1] in accessible_docs]
+        return render_template(
+            "quiz_generator.html",
+            docs=docs,
+            quizzes=user_quizzes,
+            has_env_key=False,
+            role=role,
+            error="Gemini API Key is required. Please set it in your environment or enter it below."
+        )
+
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT text FROM knowledge WHERE document=? ORDER BY id", (document,))
+    chunks = [row[0] for row in cur.fetchall()]
+    conn.close()
+
+    if not chunks:
+        return render_template(
+            "quiz_generator.html",
+            docs=[],
+            quizzes=[],
+            has_env_key=bool(os.environ.get("GEMINI_API_KEY")),
+            role=role,
+            error=f"No content found for document '{document}' to generate a quiz."
+        )
+
+    full_text = "\n".join(chunks)
+    words = full_text.split()
+    if len(words) > 15000:
+        full_text = " ".join(words[:15000])
+
+    try:
+        import urllib.request
+        import urllib.error
+
+        prompt = f"""You are an expert academic educator. Based on the following source document text, generate exactly {num_questions} Multiple Choice Questions (MCQs) to test a student's comprehension.
+
+Source Text:
+{full_text}
+
+Provide the output ONLY as a raw JSON array of objects. Do not wrap the JSON output in markdown formatting blocks (like ```json ... ```). Each object in the array must have exactly these keys:
+- "question": The question string.
+- "options": A list of exactly 4 strings for options A, B, C, D in order.
+- "answer": A single uppercase character: "A", "B", "C", or "D".
+- "explanation": A detailed explanation of why the correct option is right.
+
+Ensure that the options are clear, grammatically correct, and that only one option is correct. The correct answer key MUST be capitalized and one of the characters: "A", "B", "C", "D".
+"""
+
+        # Try models in priority order via direct REST API (SDK-version-independent)
+        MODELS_TO_TRY = [
+            "gemini-flash-latest",      # confirmed working on this key
+            "gemini-pro-latest",        # pro fallback
+            "gemini-2.0-flash",         # available but may rate-limit
+            "gemini-2.0-flash-lite",
+            "gemini-2.5-flash",
+            "gemini-2.5-flash-lite",
+            "gemini-2.5-pro",
+        ]
+
+        response_text = None
+        last_error = None
+
+        for model_id in MODELS_TO_TRY:
+            url = (
+                f"https://generativelanguage.googleapis.com/v1beta/models/"
+                f"{model_id}:generateContent?key={api_key}"
+            )
+            payload = json.dumps({
+                "contents": [{"parts": [{"text": prompt}]}],
+                "generationConfig": {"temperature": 0.4, "maxOutputTokens": 8192},
+            }).encode("utf-8")
+
+            req = urllib.request.Request(
+                url,
+                data=payload,
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            try:
+                with urllib.request.urlopen(req, timeout=120) as resp:
+                    result = json.loads(resp.read().decode("utf-8"))
+                    response_text = (
+                        result["candidates"][0]["content"]["parts"][0]["text"].strip()
+                    )
+                    break  # success — stop trying further models
+            except urllib.error.HTTPError as http_err:
+                err_body = http_err.read().decode("utf-8", errors="ignore")
+                last_error = f"HTTP {http_err.code} from {model_id}: {err_body[:300]}"
+                # 404 = model not on this key, 429 = rate limited — try next model in both cases
+                if http_err.code in (404, 400, 429):
+                    continue
+                raise RuntimeError(last_error)  # other errors (401 bad key, 500, etc.) → bail
+            except Exception as e:
+                last_error = str(e)
+                continue
+
+        if response_text is None:
+            raise RuntimeError(
+                "All Gemini models are currently rate-limited or unavailable on your API key. "
+                "Please wait 60 seconds and try again. If the issue persists, check your quota at "
+                "https://ai.dev/rate-limit or use a different API key."
+            )
+
+        # Strip markdown fences if present
+        if response_text.startswith("```"):
+            response_text = re.sub(r"^```[a-zA-Z]*\n?", "", response_text)
+            response_text = re.sub(r"\n?```$", "", response_text)
+        response_text = response_text.strip()
+
+        questions = json.loads(response_text)
+
+        if not isinstance(questions, list) or len(questions) == 0:
+            raise ValueError("LLM did not return a valid list of questions.")
+
+        conn = get_db()
+        cur = conn.cursor()
+        created_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        cur.execute(
+            "INSERT INTO quizzes (document, questions_json, created_at) VALUES (?, ?, ?)",
+            (document, json.dumps(questions), created_at)
+        )
+        quiz_id = cur.lastrowid
+        conn.commit()
+        conn.close()
+
+        log_activity(session.get("username", "unknown"), "generate_quiz", f"Generated quiz {quiz_id} for {document}")
+        return redirect(f"/quiz/view/{quiz_id}")
+
+    except Exception as e:
+        allowed = tuple(allowed_audiences_for_role(role))
+        placeholders = ",".join(["?"] * len(allowed))
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute(
+            f"SELECT DISTINCT document, domain FROM knowledge WHERE audience IN ({placeholders}) ORDER BY document",
+            allowed,
+        )
+        docs = cur.fetchall()
+        cur.execute("SELECT id, document, created_at FROM quizzes ORDER BY id DESC")
+        all_quizzes = cur.fetchall()
+        conn.close()
+        accessible_docs = {doc[0] for doc in docs}
+        user_quizzes = [q for q in all_quizzes if q[1] in accessible_docs]
+        return render_template(
+            "quiz_generator.html",
+            docs=docs,
+            quizzes=user_quizzes,
+            has_env_key=bool(os.environ.get("GEMINI_API_KEY")),
+            role=role,
+            error=f"Error generating quiz via Gemini LLM: {str(e)}"
+        )
+
+
+@app.route("/quiz/view/<int:quiz_id>", methods=["GET"])
+@login_required
+def quiz_view(quiz_id):
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT document, questions_json FROM quizzes WHERE id=?", (quiz_id,))
+    row = cur.fetchone()
+    conn.close()
+
+    if not row:
+        return abort(404)
+
+    document, questions_json = row
+    role = normalize_role(session.get("role"))
+    if not is_document_accessible(document, role):
+        return abort(403)
+
+    questions = json.loads(questions_json)
+    return render_template(
+        "quiz_view.html",
+        quiz_id=quiz_id,
+        document=document,
+        questions=questions,
+        role=role,
+    )
+
+
+@app.route("/quiz/submit/<int:quiz_id>", methods=["POST"])
+@login_required
+def quiz_submit(quiz_id):
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT document, questions_json FROM quizzes WHERE id=?", (quiz_id,))
+    row = cur.fetchone()
+    conn.close()
+
+    if not row:
+        return abort(404)
+
+    document, questions_json = row
+    role = normalize_role(session.get("role"))
+    if not is_document_accessible(document, role):
+        return abort(403)
+
+    questions = json.loads(questions_json)
+    score = 0
+    results = []
+
+    for i, q in enumerate(questions):
+        user_choice = request.form.get(f"q_{i}", "").strip().upper()
+        correct_choice = q.get("answer", "").strip().upper()
+        is_correct = user_choice == correct_choice
+        if is_correct:
+            score += 1
+
+        results.append({
+            "question": q.get("question"),
+            "options": q.get("options"),
+            "correct": correct_choice,
+            "user": user_choice,
+            "is_correct": is_correct,
+            "explanation": q.get("explanation")
+        })
+
+    percent = int((score / len(questions)) * 100) if questions else 0
+    username = session.get("username", "unknown")
+    log_activity(username, "take_quiz", f"Scored {score}/{len(questions)} ({percent}%) on quiz {quiz_id}")
+
+    return render_template(
+        "quiz_results.html",
+        document=document,
+        score=score,
+        total=len(questions),
+        percent=percent,
+        results=results,
+        role=role,
+    )
+
+
 @app.errorhandler(403)
 def forbidden(_error):
     return "You do not have permission to access this resource.", 403
 
 
+
 # ---------------- RUN APP ----------------
 if __name__ == "__main__":
-    app.run(debug=True, use_reloader=False)
+    app.run(debug=True, use_reloader=True)

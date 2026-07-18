@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description"
+    content="AI Quiz Generator — KnowledgeSphere AI. Generate MCQ assessments from uploaded documents using Gemini LLM.">
+  <title>AI Quiz Generator — KnowledgeSphere AI</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <style>
+    .quiz-page {
+      width: min(900px, 100%);
+      margin: 0 auto;
+    }
+
+    .gen-card {
+      background: rgba(22, 27, 34, 0.9);
+      border: 1px solid rgba(48, 54, 61, 0.8);
+      border-radius: 20px;
+      padding: 32px;
+      margin-bottom: 24px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    }
+
+    .gen-card-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 22px;
+    }
+
+    .gen-icon {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.6rem;
+      background: linear-gradient(135deg, #6f2da8, #bc8cff);
+      box-shadow: 0 4px 16px rgba(188, 140, 255, 0.3);
+      flex-shrink: 0;
+    }
+
+    .gen-title h2 {
+      margin-bottom: 4px;
+    }
+
+    .gen-title p {
+      margin: 0;
+      font-size: 0.88rem;
+    }
+
+    .field-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+
+    @media (max-width: 560px) {
+      .field-group {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .api-notice {
+      background: rgba(227, 179, 65, 0.1);
+      border: 1px solid rgba(227, 179, 65, 0.3);
+      border-radius: 12px;
+      padding: 16px;
+      margin: 16px 0;
+    }
+
+    .generate-btn {
+      width: 100%;
+      padding: 14px;
+      font-size: 1.05rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #6f2da8, #bc8cff);
+      border-radius: 12px;
+      margin-top: 4px;
+      letter-spacing: 0.3px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .generate-btn:hover {
+      box-shadow: 0 8px 28px rgba(188, 140, 255, 0.4);
+    }
+
+    .quiz-list-card {
+      background: rgba(22, 27, 34, 0.9);
+      border: 1px solid rgba(48, 54, 61, 0.8);
+      border-radius: 20px;
+      padding: 28px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    }
+
+    .quiz-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 0;
+      border-bottom: 1px solid rgba(48, 54, 61, 0.8);
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .quiz-row:last-child {
+      border-bottom: none;
+    }
+
+    .quiz-row-info strong {
+      color: #e6edf3;
+      font-size: 0.95rem;
+      display: block;
+    }
+
+    .quiz-row-info span {
+      color: #6e7681;
+      font-size: 0.78rem;
+      margin-top: 3px;
+      display: block;
+    }
+
+    .take-quiz-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 18px;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 0.85rem;
+      background: linear-gradient(135deg, #6f2da8, #bc8cff);
+      color: #fff;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+
+    .take-quiz-btn:hover {
+      box-shadow: 0 6px 20px rgba(188, 140, 255, 0.4);
+      transform: translateY(-1px);
+      text-decoration: none;
+      color: #fff;
+    }
+
+    .doc-select-option {
+      font-family: 'Inter', sans-serif;
+    }
+
+    .stats-mini {
+      display: flex;
+      gap: 14px;
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+    }
+
+    .stat-mini {
+      flex: 1;
+      min-width: 130px;
+      background: rgba(33, 38, 45, 0.8);
+      border: 1px solid rgba(48, 54, 61, 0.8);
+      border-radius: 12px;
+      padding: 14px 18px;
+      text-align: center;
+    }
+
+    .stat-mini h3 {
+      font-size: 1.8rem;
+      font-weight: 900;
+      margin-bottom: 2px;
+    }
+
+    .stat-mini p {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin: 0;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="quiz-page animate-in">
+    <div style="text-align: center; margin-bottom: 28px;">
+      <h1>🤖 AI Quiz Generator</h1>
+      <p>Extract knowledge from uploaded documents and generate MCQ assessments using Gemini LLM — automatically.</p>
+    </div>
+
+    <!-- Mini Stats -->
+    <div class="stats-mini">
+      <div class="stat-mini">
+        <h3
+          style="background: linear-gradient(135deg, #bc8cff, #58a6ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+          {{ docs|length }}</h3>
+        <p style="color: #8b949e;">Source Documents</p>
+      </div>
+      <div class="stat-mini">
+        <h3
+          style="background: linear-gradient(135deg, #39d353, #58a6ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+          {{ quizzes|length }}</h3>
+        <p style="color: #8b949e;">Generated Quizzes</p>
+      </div>
+    </div>
+
+    <!-- Generator Card -->
+    <div class="gen-card">
+      <div class="gen-card-header">
+        <div class="gen-icon">🤖</div>
+        <div class="gen-title">
+          <h2
+            style="background: linear-gradient(135deg, #bc8cff, #58a6ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+            Generate New Quiz</h2>
+          <p>Select a document and question count — Gemini LLM handles the rest.</p>
+        </div>
+      </div>
+
+      {% if error %}
+      <div class="alert alert-danger"><span>⚠️</span> {{ error }}</div>
+      {% endif %}
+
+      {% if docs|length == 0 %}
+      <div class="alert alert-warning">
+        <span>⚠️</span> No documents available yet. Please upload documents first before generating quizzes.
+      </div>
+      {% else %}
+      <form action="/quiz/generate" method="post" id="quiz-gen-form"
+        style="border:none; box-shadow:none; padding:0; margin:0; background:transparent; display:block; width:100%;">
+
+        <div class="field-group">
+          <div>
+            <label for="doc-select">Source Document</label>
+            <select id="doc-select" name="document" required>
+              {% for doc, domain in docs %}
+              <option value="{{ doc }}" class="doc-select-option">{{ doc }} [{{ domain }}]</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label for="num-questions">Number of Questions</label>
+            <select id="num-questions" name="num_questions" required>
+              <option value="3">3 Questions — Quick Check</option>
+              <option value="5" selected>5 Questions — Standard</option>
+              <option value="10">10 Questions — Deep Dive</option>
+              <option value="15">15 Questions — Full Assessment</option>
+            </select>
+          </div>
+        </div>
+
+        {% if not has_env_key %}
+        <div class="api-notice">
+          <label for="api-key"
+            style="color: #e3b341; font-size: 0.85rem; font-weight: 700; margin-bottom: 6px; display: block;">
+            🔑 Gemini API Key Required
+          </label>
+          <input type="password" id="api-key" name="custom_api_key" placeholder="Enter your Gemini API Key (AIzaSy...)">
+          <p style="font-size: 0.78rem; color: #8b949e; margin-top: 8px; margin-bottom: 0;">
+            Your key is used only for this generation and is never stored. Get a free key at <a
+              href="https://aistudio.google.com" target="_blank" style="color: #58a6ff;">aistudio.google.com →</a>
+          </p>
+        </div>
+        {% else %}
+        <div class="alert alert-success" style="margin-bottom: 14px;">
+          <span>✅</span> Gemini API key configured via environment variable.
+        </div>
+        {% endif %}
+
+        <button type="submit" class="generate-btn" id="generate-btn"
+          onclick="this.innerHTML='⏳ Generating Quiz…'; this.disabled=true; this.form.submit();">
+          ✨ Generate Quiz with Gemini LLM
+        </button>
+      </form>
+      {% endif %}
+    </div>
+
+    <!-- Quiz History -->
+    {% if quizzes|length > 0 %}
+    <div class="quiz-list-card animate-in" style="animation-delay: 0.2s;">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+        <h2 style="margin-bottom: 0;">Available Quizzes</h2>
+        <span style="font-size: 0.8rem; color: #8b949e;">{{ quizzes|length }} total</span>
+      </div>
+
+      {% for q_id, doc, created in quizzes %}
+      <div class="quiz-row">
+        <div class="quiz-row-info">
+          {% set ext = doc.rsplit('.', 1)[-1].lower() if '.' in doc else 'file' %}
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+            <span class="file-badge {{ ext }}">
+              {% if ext == 'pdf' %}📕{% elif ext == 'docx' %}📘{% elif ext == 'pptx' %}📙{% elif ext == 'xlsx' %}📗{%
+              else %}📄{% endif %}
+              {{ ext.upper() }}
+            </span>
+          </div>
+          <strong>{{ doc }}</strong>
+          <span>Generated {{ created[:10] if created else 'N/A' }}</span>
+        </div>
+        <a href="/quiz/view/{{ q_id }}" class="take-quiz-btn" id="take-quiz-{{ q_id }}">
+          🎯 Take Quiz
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <div style="text-align: center;">
+      <a href="/dashboard" class="back-btn">← Back to Dashboard</a>
+    </div>
+  </div>
+
+</body>
+
+</html>

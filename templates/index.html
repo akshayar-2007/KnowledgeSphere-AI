@@ -1,38 +1,85 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<title>Knowledge Management Portal</title>
-<link rel="stylesheet" href="/static/style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="KnowledgeSphere AI — Institutional knowledge management portal with AI-powered search, multi-format document support, and quiz generation.">
+  <title>KnowledgeSphere AI — Sign In</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <style>
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 5px 14px; border-radius: 999px;
+      background: rgba(88,166,255,0.12); border: 1px solid rgba(88,166,255,0.3);
+      color: #58a6ff; font-size: 0.78rem; font-weight: 700;
+      letter-spacing: 0.8px; text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: #58a6ff;
+           animation: pulse-dot 2s infinite; }
+    @keyframes pulse-dot {
+      0%,100% { opacity: 1; transform: scale(1); }
+      50%      { opacity: 0.5; transform: scale(1.4); }
+    }
+    .feature-pills {
+      display: flex; flex-wrap: wrap; gap: 8px;
+      justify-content: center; margin: 18px 0 4px;
+    }
+    .pill {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 4px 12px; border-radius: 999px;
+      background: rgba(33,38,45,0.9); border: 1px solid rgba(48,54,61,0.8);
+      color: #8b949e; font-size: 0.75rem; font-weight: 600;
+    }
+  </style>
 </head>
-
 <body>
 
-<div class="auth-container">
+<div class="auth-container animate-in">
+  <span class="auth-logo">🌌</span>
 
-<h1>Knowledge Management Portal</h1>
-<p>Centralized access for students, faculty, administrators, and researchers.</p>
+  <div class="hero-badge">
+    <span class="dot"></span>
+    AI-Powered Knowledge Platform
+  </div>
 
-{% if error %}
-<p style="color:#c0392b;">{{error}}</p>
-{% endif %}
+  <h1 style="-webkit-text-fill-color: inherit; background: none; color: #e6edf3; font-size: 1.7rem;">KnowledgeSphere AI</h1>
+  <p style="font-size: 0.88rem; margin-bottom: 6px;">
+    Centralized portal for students, faculty, researchers &amp; administrators.
+  </p>
 
-<h2>Sign In</h2>
+  <div class="feature-pills">
+    <span class="pill">📄 5 File Formats</span>
+    <span class="pill">🔍 Semantic Search</span>
+    <span class="pill">🤖 AI Quiz Generator</span>
+    <span class="pill">🔐 Role-Based Access</span>
+  </div>
 
-<form method="post" action="/login">
+  {% if error %}
+  <div class="alert alert-danger" style="margin-top: 14px;">
+    <span>⚠️</span> {{ error }}
+  </div>
+  {% endif %}
 
-<input type="text" name="username" placeholder="Username" required>
+  <h2 style="margin-top: 20px; font-size: 1.1rem;">Sign In</h2>
 
-<input type="password" name="password" placeholder="Password" required>
+  <form method="post" action="/login" style="box-shadow: none; border: none; padding: 0; background: transparent; width: 100%; margin: 12px 0 0;">
+    <div>
+      <label for="username">Username</label>
+      <input type="text" id="username" name="username" placeholder="Enter your username" required autocomplete="username">
+    </div>
+    <div>
+      <label for="password">Password</label>
+      <input type="password" id="password" name="password" placeholder="••••••••" required autocomplete="current-password">
+    </div>
+    <button type="submit" id="signin-btn" style="margin-top: 6px;">
+      🚀 Sign In to Portal
+    </button>
+  </form>
 
-<button type="submit">Sign In</button>
-
-</form>
-
-<p class="switch">
-Don't have an account?
-<a href="/register">Sign Up</a>
-</p>
-
+  <p class="switch">
+    New here? <a href="/register">Create an account →</a>
+  </p>
 </div>
 
 </body>

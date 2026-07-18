@@ -1,85 +1,150 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<title>{{role_label}} Dashboard</title>
-<link rel="stylesheet" href="/static/style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="KnowledgeSphere AI dashboard — your institutional knowledge hub with document management, AI search, and quiz generation.">
+  <title>{{ role_label }} Dashboard — KnowledgeSphere AI</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <style>
+    .nav-bar {
+      width: min(1140px,100%); margin: 0 auto 24px;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 20px;
+      background: rgba(22,27,34,0.9); border: 1px solid rgba(48,54,61,0.8);
+      border-radius: 14px; backdrop-filter: blur(16px);
+    }
+    .nav-brand { display: flex; align-items: center; gap: 10px; }
+    .nav-brand span { font-size: 1.3rem; }
+    .nav-brand strong { font-size: 1rem; color: #e6edf3; font-family: 'Space Grotesk',sans-serif; }
+    .nav-meta { display: flex; align-items: center; gap: 12px; }
+    .role-chip {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 4px 12px; border-radius: 999px;
+      background: rgba(88,166,255,0.12); border: 1px solid rgba(88,166,255,0.3);
+      color: #58a6ff; font-size: 0.78rem; font-weight: 700;
+    }
+    .recent-section { width: min(1140px,100%); margin: 32px auto 0; text-align: left; }
+    .recent-header { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+    .recent-header h2 { margin-bottom: 0; }
+    .recent-badge {
+      padding: 3px 10px; border-radius: 999px; font-size: 0.72rem; font-weight: 700;
+      background: rgba(57,211,83,0.15); border: 1px solid rgba(57,211,83,0.3); color: #39d353;
+    }
+  </style>
 </head>
-
 <body>
 
-<h1>{{role_label}} Dashboard</h1>
-<p>Welcome, {{username}}</p>
+<!-- Navigation Bar -->
+<nav class="nav-bar animate-in">
+  <div class="nav-brand">
+    <span>🌌</span>
+    <strong>KnowledgeSphere AI</strong>
+  </div>
+  <div class="nav-meta">
+    <span class="role-chip">{{ role_label }}</span>
+    <span style="color: #8b949e; font-size: 0.85rem;">👤 {{ username }}</span>
+  </div>
+</nav>
 
-<div class="stats">
-<div class="stat-card">
-<h3>{{stats.doc_count}}</h3>
-<p>Accessible Documents</p>
-</div>
+<h1>{{ role_label }} Dashboard</h1>
+<p style="margin-bottom: 4px;">Welcome back, <strong style="color: #58a6ff;">{{ username }}</strong> — your knowledge hub is ready.</p>
 
-<div class="stat-card">
-<h3>{{stats.domain_count}}</h3>
-<p>Knowledge Domains</p>
-</div>
-
-{% if role == "administrator" %}
-<div class="stat-card">
-<h3>{{stats.user_count}}</h3>
-<p>Registered Stakeholders</p>
-</div>
-{% endif %}
-</div>
-
-<div class="dashboard">
-{% if can_upload_docs %}
-<div class="dash-card">
-<h2>Upload Documents</h2>
-<p>Add new PDFs with domain and audience controls.</p>
-<a href="/upload">Upload</a>
-</div>
-{% endif %}
-
-<div class="dash-card">
-<h2>Semantic Search</h2>
-<p>Find relevant documents using AI-powered retrieval.</p>
-<a href="/search">Search</a>
+<!-- Stats -->
+<div class="stats animate-in" style="animation-delay: 0.1s;">
+  <div class="stat-card">
+    <h3>{{ stats.doc_count }}</h3>
+    <p>Accessible Documents</p>
+  </div>
+  <div class="stat-card" style="--accent-from: #bc8cff; --accent-to: #58a6ff;">
+    <h3 style="background: linear-gradient(135deg, #bc8cff, #58a6ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">{{ stats.domain_count }}</h3>
+    <p>Knowledge Domains</p>
+  </div>
+  {% if role == "administrator" %}
+  <div class="stat-card">
+    <h3 style="background: linear-gradient(135deg, #39d353, #58a6ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">{{ stats.user_count }}</h3>
+    <p>Registered Stakeholders</p>
+  </div>
+  {% endif %}
 </div>
 
-<div class="dash-card">
-<h2>Document Library</h2>
-<p>Browse available documents by domain.</p>
-<a href="/documents">Open Library</a>
+<!-- Action Cards -->
+<div class="dashboard animate-in" style="animation-delay: 0.2s;">
+
+  {% if can_upload_docs %}
+  <div class="dash-card">
+    <span class="card-icon">📤</span>
+    <h2>Upload Documents</h2>
+    <p>Ingest PDF, DOCX, PPTX, XLSX, or TXT files with domain and audience access controls.</p>
+    <a href="/upload" id="upload-link">Upload Files →</a>
+  </div>
+  {% endif %}
+
+  <div class="dash-card">
+    <span class="card-icon">🔍</span>
+    <h2>Semantic Search</h2>
+    <p>Find relevant knowledge using hybrid AI-powered retrieval combining dense vectors and keyword matching.</p>
+    <a href="/search" id="search-link">Search Knowledge →</a>
+  </div>
+
+  <div class="dash-card">
+    <span class="card-icon">📚</span>
+    <h2>Document Library</h2>
+    <p>Browse all accessible documents organized by domain with preview and download options.</p>
+    <a href="/documents" id="library-link">Open Library →</a>
+  </div>
+
+  <div class="dash-card" style="border-color: rgba(188,140,255,0.3);">
+    <span class="card-icon">🤖</span>
+    <h2>AI Quiz Generator</h2>
+    <p>Generate MCQ assessments from uploaded documents using Gemini LLM. Track your knowledge comprehension.</p>
+    <a href="/quiz" id="quiz-link" style="background: linear-gradient(135deg, #6f2da8, #bc8cff);">Generate Quiz →</a>
+  </div>
+
+  {% if can_manage_domain %}
+  <div class="dash-card">
+    <span class="card-icon">🗂️</span>
+    <h2>Manage Domains</h2>
+    <p>Create and organize knowledge domain categories for structured document management.</p>
+    <a href="/domains" id="domains-link">Manage →</a>
+  </div>
+  {% endif %}
+
+  <div class="dash-card">
+    <span class="card-icon">🚪</span>
+    <h2>Sign Out</h2>
+    <p>Securely end your portal session and clear access credentials.</p>
+    <a href="/logout" id="logout-link" style="background: rgba(33,38,45,0.9); border: 1px solid rgba(48,54,61,0.8); color: #8b949e;">Logout</a>
+  </div>
+
 </div>
 
-{% if can_manage_domain %}
-<div class="dash-card">
-<h2>Manage Domains</h2>
-<p>Create and organize domain categories.</p>
-<a href="/domains">Manage</a>
-</div>
-{% endif %}
-
-<div class="dash-card">
-<h2>Logout</h2>
-<p>Sign out of the portal session.</p>
-<a href="/logout">Logout</a>
-</div>
-</div>
-
+<!-- Recent Documents -->
 {% if stats.recent_docs %}
-<h2>Recently Added</h2>
-<div class="library-grid">
-{% for doc, domain, created_at in stats.recent_docs %}
-<div class="library-card">
-<h3>{{doc}}</h3>
-<p class="category">{{domain}}</p>
-{% if created_at %}
-<p class="tags">{{created_at}}</p>
-{% endif %}
-<div class="doc-buttons">
-<a href="/preview/{{doc}}" target="_blank">Preview</a>
-</div>
-</div>
-{% endfor %}
+<div class="recent-section animate-in" style="animation-delay: 0.3s;">
+  <div class="recent-header">
+    <h2>Recently Added</h2>
+    <span class="recent-badge">Live</span>
+  </div>
+  <div class="library-grid" style="margin: 0;">
+    {% for doc, domain, created_at in stats.recent_docs %}
+    <div class="doc-card">
+      {% set ext = doc.rsplit('.', 1)[-1].lower() if '.' in doc else 'file' %}
+      <span class="file-badge {{ ext }}" style="margin-bottom: 10px;">
+        {% if ext == 'pdf' %}📕{% elif ext == 'docx' %}📘{% elif ext == 'pptx' %}📙{% elif ext == 'xlsx' %}📗{% else %}📄{% endif %}
+        {{ ext.upper() }}
+      </span>
+      <h3 style="font-size: 0.92rem; word-break: break-word;">{{ doc }}</h3>
+      <p class="category">📂 {{ domain }}</p>
+      {% if created_at %}
+      <p style="font-size: 0.78rem; color: #6e7681; margin-top: 4px;">🕐 {{ created_at[:10] }}</p>
+      {% endif %}
+      <div class="doc-buttons">
+        <a href="/preview/{{ doc }}" target="_blank">Preview</a>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
 </div>
 {% endif %}
 

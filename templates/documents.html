@@ -1,97 +1,107 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
-<title>Document Library</title>
-<link rel="stylesheet" href="/static/style.css">
-
-<script>
-
-function filterCategory(cat){
-
-    let cards = document.getElementsByClassName("doc-card");
-
-    for(let c of cards){
-
-        if(cat==="All" || c.dataset.cat===cat)
-            c.style.display="block";
-        else
-            c.style.display="none";
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Browse the KnowledgeSphere AI document library — organized by domain with semantic search and download access.">
+  <title>Document Library — KnowledgeSphere AI</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <style>
+    .doc-name { font-size: 0.9rem; word-break: break-word; margin-bottom: 8px; }
+    .audience-chip {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 2px 9px; border-radius: 999px;
+      font-size: 0.72rem; font-weight: 700;
+      background: rgba(57,211,83,0.12); border: 1px solid rgba(57,211,83,0.3); color: #39d353;
     }
-
-}
-
-</script>
-
+    .empty-state {
+      text-align: center; padding: 60px 20px; color: #8b949e;
+      background: rgba(22,27,34,0.5); border: 1px dashed rgba(48,54,61,0.8);
+      border-radius: 18px; margin: 30px auto; max-width: 600px;
+    }
+    .empty-state .empty-icon { font-size: 3rem; margin-bottom: 12px; display: block; }
+  </style>
 </head>
-
 <body>
 
 <h1>Document Library</h1>
+<p>Browse all accessible documents organized by knowledge domain.</p>
 
-<div class="category-bar">
-
-<button onclick="filterCategory('All')">All</button>
-
-{% for cat in categories %}
-
-<button onclick="filterCategory('{{cat}}')">
-
-{{cat}}
-
-</button>
-
-{% endfor %}
-
+<!-- Category Filter Bar -->
+<div class="category-bar animate-in" id="cat-bar">
+  <button onclick="filterCategory('All')" class="active" id="filter-All">🗂️ All</button>
+  {% for cat in categories %}
+  <button onclick="filterCategory('{{ cat }}')" id="filter-{{ cat }}">{{ cat }}</button>
+  {% endfor %}
 </div>
 
+<!-- Document Grid -->
+{% if data %}
+<div class="library-grid animate-in" style="animation-delay: 0.15s;" id="doc-grid">
+  {% for category, docs in data.items() %}
+  {% for doc in docs %}
+  <div class="doc-card" data-cat="{{ category }}" id="doc-{{ loop.index }}">
+    {% set ext = doc.name.rsplit('.', 1)[-1].lower() if '.' in doc.name else 'file' %}
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
+      <span class="file-badge {{ ext }}">
+        {% if ext == 'pdf' %}📕{% elif ext == 'docx' %}📘{% elif ext == 'pptx' %}📙{% elif ext == 'xlsx' %}📗{% else %}📄{% endif %}
+        {{ ext.upper() }}
+      </span>
+      <span class="audience-chip">👥 {{ doc.audience }}</span>
+    </div>
 
-<div class="library-grid">
+    <h3 class="doc-name">{{ doc.name }}</h3>
+    <p class="category" style="margin-bottom: 6px;">📂 {{ category }}</p>
 
-{% for category,docs in data.items() %}
+    {% if doc.keywords %}
+    <div class="tags">
+      {% for kw in doc.keywords.split(',')[:4] %}
+      <span class="tag">{{ kw.strip() }}</span>
+      {% endfor %}
+    </div>
+    {% endif %}
 
-{% for doc in docs %}
+    {% if doc.created_at %}
+    <p style="font-size: 0.75rem; color: #6e7681; margin-top: 10px;">🕐 {{ doc.created_at[:10] }}</p>
+    {% endif %}
 
-<div class="doc-card" data-cat="{{category}}">
+    <div class="doc-buttons">
+      <a href="/preview/{{ doc.name }}" target="_blank" id="prev-{{ category }}-{{ loop.index }}">Preview</a>
+      <a href="/download/{{ doc.name }}" class="outline" id="dl-{{ category }}-{{ loop.index }}">⬇️ Download</a>
+    </div>
+  </div>
+  {% endfor %}
+  {% endfor %}
+</div>
 
-<h3>{{doc.name}}</h3>
-
-<p class="category">{{category}}</p>
-<p class="category">Audience: {{doc.audience}}</p>
-{% if doc.keywords %}
-<p class="tags">Keywords: {{doc.keywords}}</p>
+{% else %}
+<div class="empty-state animate-in">
+  <span class="empty-icon">📭</span>
+  <h2>No Documents Yet</h2>
+  <p>No documents are available for your access level. Ask faculty or administrators to upload knowledge documents.</p>
+</div>
 {% endif %}
-{% if doc.created_at %}
-<p class="tags">Uploaded: {{doc.created_at}}</p>
-{% endif %}
 
-<div class="doc-buttons">
-
-<a href="/preview/{{doc.name}}" target="_blank">
-
-Preview
-
-</a>
-
-<a href="/download/{{doc.name}}">
-
-Download
-
-</a>
-
+<div style="text-align: center;">
+  <a href="/dashboard" class="back-btn">← Back to Dashboard</a>
 </div>
 
-</div>
+<script>
+function filterCategory(cat) {
+  const cards  = document.querySelectorAll('.doc-card');
+  const btns   = document.querySelectorAll('#cat-bar button');
 
-{% endfor %}
+  btns.forEach(b => b.classList.remove('active'));
+  const activeBtn = document.getElementById('filter-' + cat);
+  if (activeBtn) activeBtn.classList.add('active');
 
-{% endfor %}
-
-</div>
-
-
-<a href="/dashboard" class="back-btn">Back</a>
+  cards.forEach(c => {
+    const show = cat === 'All' || c.dataset.cat === cat;
+    c.style.display = show ? 'block' : 'none';
+    if (show) c.style.animation = 'fadeUp 0.3s ease both';
+  });
+}
+</script>
 
 </body>
-
 </html>

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Take a knowledge assessment quiz generated from institutional documents on KnowledgeSphere AI.">
+  <title>Knowledge Assessment — KnowledgeSphere AI</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <style>
+    .quiz-view-page { max-width: 820px; margin: 0 auto; }
+    .quiz-header {
+      background: rgba(22,27,34,0.9); border: 1px solid rgba(48,54,61,0.8);
+      border-radius: 18px; padding: 24px 28px; margin-bottom: 28px;
+      display: flex; align-items: center; gap: 16px;
+    }
+    .quiz-doc-icon {
+      width: 48px; height: 48px; border-radius: 12px; display: flex;
+      align-items: center; justify-content: center; font-size: 1.5rem;
+      background: linear-gradient(135deg, #6f2da8, #bc8cff); flex-shrink: 0;
+    }
+    .quiz-meta h2 { margin-bottom: 4px; font-size: 1.1rem; }
+    .quiz-meta p  { margin: 0; font-size: 0.85rem; }
+    .progress-info {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 24px; flex-wrap: wrap; gap: 8px;
+    }
+    .progress-label { font-size: 0.85rem; color: #8b949e; font-weight: 600; }
+    .q-num-badge {
+      font-size: 0.75rem; font-weight: 800; color: #58a6ff;
+      background: rgba(88,166,255,0.12); border: 1px solid rgba(88,166,255,0.3);
+      padding: 3px 10px; border-radius: 999px;
+    }
+    .option-item.selected {
+      border-color: #58a6ff; background: rgba(88,166,255,0.1);
+    }
+    .submit-section {
+      text-align: center; margin-top: 32px; padding: 28px;
+      background: rgba(22,27,34,0.9); border: 1px solid rgba(48,54,61,0.8);
+      border-radius: 18px;
+    }
+    .submit-btn {
+      max-width: 360px; margin: 0 auto; padding: 16px 32px;
+      font-size: 1.1rem; font-weight: 800; border-radius: 12px;
+      background: linear-gradient(135deg, #166534, #39d353);
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+    }
+    .submit-btn:hover { box-shadow: 0 8px 28px rgba(57,211,83,0.4); }
+    .answered-count {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 12px; border-radius: 999px; font-size: 0.82rem; font-weight: 700;
+      background: rgba(88,166,255,0.12); border: 1px solid rgba(88,166,255,0.3); color: #58a6ff;
+      margin-bottom: 16px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="quiz-view-page animate-in">
+
+  <!-- Quiz Header -->
+  <div class="quiz-header">
+    <div class="quiz-doc-icon">📝</div>
+    <div class="quiz-meta">
+      <h2>Knowledge Assessment</h2>
+      <p style="color: #8b949e;">Source: <strong style="color: #58a6ff;">{{ document }}</strong></p>
+      <p style="color: #8b949e; margin-top: 2px;">{{ questions|length }} questions — Select one option per question</p>
+    </div>
+  </div>
+
+  <form action="/quiz/submit/{{ quiz_id }}" method="post" id="quiz-form"
+        style="border:none; box-shadow:none; padding:0; margin:0; background:transparent; display:block; width:100%;">
+
+    <!-- Questions -->
+    {% for q in questions %}
+    {% set outer_loop = loop %}
+    <div class="question-card animate-in" style="animation-delay: {{ (loop.index0 * 0.07)|round(2) }}s;" id="q-card-{{ loop.index0 }}">
+      <div class="question-title">
+        <span class="question-num">{{ outer_loop.index }}</span>
+        <span>{{ q.question }}</span>
+      </div>
+      <div class="options-list">
+        {% for opt in q.options %}
+        {% set label_char = ("A" if loop.index == 1 else "B" if loop.index == 2 else "C" if loop.index == 3 else "D") %}
+        <label class="option-item" for="q{{ outer_loop.index0 }}_{{ label_char }}"
+               onclick="this.classList.add('selected'); this.parentNode.querySelectorAll('.option-item').forEach(el => { if(el !== this) el.classList.remove('selected'); }); updateCount();">
+          <input type="radio" name="q_{{ outer_loop.index0 }}" value="{{ label_char }}"
+                 id="q{{ outer_loop.index0 }}_{{ label_char }}" required>
+          <span class="option-label"><strong>{{ label_char }}.</strong> {{ opt }}</span>
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+
+    <!-- Submit Section -->
+    <div class="submit-section">
+      <div class="answered-count" id="answered-count">0 / {{ questions|length }} answered</div>
+      <p style="color: #8b949e; margin-bottom: 20px; font-size: 0.9rem;">
+        Answer all {{ questions|length }} questions before submitting your assessment.
+      </p>
+      <button type="submit" class="submit-btn" id="submit-btn">
+        🎯 Submit Assessment
+      </button>
+    </div>
+  </form>
+
+  <div style="text-align: center;">
+    <a href="/quiz" class="back-btn">← Back to Quiz Generator</a>
+  </div>
+</div>
+
+<script>
+const total = {{ questions|length }};
+
+function updateCount() {
+  const answered = document.querySelectorAll('input[type="radio"]:checked').length;
+  const el = document.getElementById('answered-count');
+  el.textContent = `${answered} / ${total} answered`;
+  if (answered === total) {
+    el.style.background = 'rgba(57,211,83,0.15)';
+    el.style.borderColor = 'rgba(57,211,83,0.4)';
+    el.style.color = '#39d353';
+  }
+}
+
+document.getElementById('quiz-form').addEventListener('submit', function() {
+  const btn = document.getElementById('submit-btn');
+  btn.innerHTML = '⏳ Grading…';
+  btn.disabled = true;
+});
+</script>
+
+</body>
+</html>

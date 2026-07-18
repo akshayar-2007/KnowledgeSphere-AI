@@ -1,139 +1,162 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
-
-<title>Search Knowledge</title>
-
-<link rel="stylesheet" href="/static/style.css">
-
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Search KnowledgeSphere AI — hybrid AI-powered semantic search across your institutional document library.">
+  <title>Semantic Search — KnowledgeSphere AI</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <style>
+    .search-page { width: min(860px, 100%); margin: 0 auto; }
+    .search-form-box {
+      background: rgba(22,27,34,0.9); border: 1px solid rgba(48,54,61,0.8);
+      border-radius: 18px; padding: 28px 24px; margin: 20px auto;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    }
+    .search-input-row { position: relative; }
+    .search-input-row input {
+      padding: 14px 54px 14px 48px; font-size: 1.05rem; border-radius: 12px;
+      border-color: rgba(88,166,255,0.3); background: rgba(33,38,45,0.9);
+    }
+    .search-icon-left {
+      position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
+      font-size: 1.1rem; color: #58a6ff; pointer-events: none;
+    }
+    .filter-row { display: flex; gap: 12px; margin-top: 14px; flex-wrap: wrap; }
+    .filter-row select { flex: 1; min-width: 160px; }
+    .result-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin: 28px 0 16px; flex-wrap: wrap; gap: 8px;
+    }
+    .result-count {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 12px; border-radius: 999px; font-size: 0.8rem; font-weight: 700;
+      background: rgba(88,166,255,0.12); border: 1px solid rgba(88,166,255,0.3); color: #58a6ff;
+    }
+    .result-card {
+      background: rgba(22,27,34,0.9); border: 1px solid rgba(48,54,61,0.8);
+      border-radius: 16px; padding: 22px; margin-bottom: 14px;
+      transition: all 0.2s ease; position: relative; overflow: hidden; text-align: left;
+    }
+    .result-card:hover {
+      border-color: rgba(88,166,255,0.4);
+      box-shadow: 0 8px 28px rgba(0,0,0,0.5), 0 0 20px rgba(88,166,255,0.1);
+      transform: translateY(-2px);
+    }
+    .result-top { display: flex; align-items: flex-start; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+    .result-score {
+      display: inline-flex; align-items: center;
+      padding: 4px 12px; border-radius: 999px; font-size: 0.82rem; font-weight: 800;
+      color: #fff;
+    }
+    .score-high { background: linear-gradient(135deg, #166534, #39d353); }
+    .score-mid  { background: linear-gradient(135deg, #854d0e, #eab308); }
+    .score-low  { background: linear-gradient(135deg, #92400e, #f78166); }
+    .result-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+    .meta-chip {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 2px 10px; border-radius: 999px;
+      background: rgba(33,38,45,0.9); border: 1px solid rgba(48,54,61,0.8);
+      font-size: 0.75rem; color: #8b949e; font-weight: 500;
+    }
+  </style>
 </head>
-
 <body>
 
-<h1>Search Knowledge</h1>
+<div class="search-page animate-in">
+  <h1>Semantic Knowledge Search</h1>
+  <p>AI-powered retrieval combining dense vector embeddings with keyword overlap scoring.</p>
 
-<form method="post">
+  <div class="search-form-box">
+    <form method="post" style="border:none; box-shadow:none; padding:0; margin:0; background:transparent; display:block; width:100%;">
+      <div class="search-input-row">
+        <span class="search-icon-left">🔍</span>
+        <input class="search-box" type="text" name="query" id="search-query"
+               placeholder="Ask anything — e.g. 'What is gradient descent?'" 
+               value="{{ search_query }}" required>
+      </div>
 
-<input
-class="search-box"
-type="text"
-name="query"
-placeholder="Ask your question..."
-value="{{search_query}}"
-required
->
+      <div class="filter-row">
+        <select name="domain" id="domain-filter">
+          <option value="all" {% if selected_domain == "all" %}selected{% endif %}>📂 All Domains</option>
+          {% for d in domains %}
+          <option value="{{ d }}" {% if selected_domain == d %}selected{% endif %}>{{ d }}</option>
+          {% endfor %}
+        </select>
 
-<select name="domain">
-<option value="all" {% if selected_domain == "all" %}selected{% endif %}>
-All Domains
-</option>
-{% for d in domains %}
-<option value="{{d}}" {% if selected_domain == d %}selected{% endif %}>
-{{d}}
-</option>
-{% endfor %}
-</select>
+        {% if can_filter_audience %}
+        <select name="audience" id="audience-filter">
+          <option value="all" {% if selected_audience == "all" %}selected{% endif %}>👥 All Audiences</option>
+          {% for code, label in audience_options %}
+          {% if code != "all" %}
+          <option value="{{ code }}" {% if selected_audience == code %}selected{% endif %}>{{ label }}</option>
+          {% endif %}
+          {% endfor %}
+        </select>
+        {% endif %}
 
-{% if can_filter_audience %}
-<select name="audience">
-<option value="all" {% if selected_audience == "all" %}selected{% endif %}>
-All Accessible Audiences
-</option>
-{% for code, label in audience_options %}
-{% if code != "all" %}
-<option value="{{code}}" {% if selected_audience == code %}selected{% endif %}>
-{{label}}
-</option>
-{% endif %}
-{% endfor %}
-</select>
-{% endif %}
+        <button type="submit" id="search-btn" style="width: auto; padding: 11px 24px; flex-shrink: 0;">
+          🚀 Search
+        </button>
+      </div>
+    </form>
+  </div>
 
-<button type="submit">Search</button>
+  <!-- Results -->
+  {% if results %}
+  <div class="result-header">
+    <h2 style="margin-bottom: 0;">Search Results</h2>
+    <span class="result-count">{{ results|length }} document{{ 's' if results|length != 1 else '' }} found</span>
+  </div>
 
-</form>
+  {% for r in results %}
+  {% set score = r.score %}
+  <div class="result-card">
+    <div class="result-top">
+      {% set ext = r.document.rsplit('.', 1)[-1].lower() if '.' in r.document else 'file' %}
+      <span class="file-badge {{ ext }}">
+        {% if ext == 'pdf' %}📕{% elif ext == 'docx' %}📘{% elif ext == 'pptx' %}📙{% elif ext == 'xlsx' %}📗{% else %}📄{% endif %}
+        {{ ext.upper() }}
+      </span>
+      <span class="result-score {% if score >= 70 %}score-high{% elif score >= 50 %}score-mid{% else %}score-low{% endif %}">
+        {{ score }}% match
+      </span>
+    </div>
 
+    <h3 style="margin-bottom: 6px; font-size: 1.0rem;">{{ r.document }}</h3>
 
-{% if request.method == "POST" %}
-<p>
-Searching in:
-{% if selected_domain == "all" %}
-All Domains
-{% else %}
-{{selected_domain}}
-{% endif %}
-</p>
-{% if can_filter_audience %}
-<p>
-Audience filter:
-{% if selected_audience == "all" %}
-All Accessible Audiences
-{% else %}
-{{selected_audience.title()}}
-{% endif %}
-</p>
-{% endif %}
-{% endif %}
+    <div class="result-meta">
+      <span class="meta-chip">📂 {{ r.domain }}</span>
+      <span class="meta-chip">👥 {{ r.audience }}</span>
+      {% if r.keywords %}
+      {% for kw in r.keywords.split(',')[:3] %}
+      <span class="meta-chip">🏷️ {{ kw.strip() }}</span>
+      {% endfor %}
+      {% endif %}
+    </div>
 
+    <p class="snippet">{{ r.snippet }}…</p>
 
-{% if results %}
+    <div class="doc-buttons">
+      <a href="/preview/{{ r.document }}" target="_blank" id="preview-{{ loop.index }}">Preview</a>
+      <a href="/download/{{ r.document }}" class="outline" id="download-{{ loop.index }}">⬇️ Download</a>
+      <a href="/quiz?doc={{ r.document }}" class="outline" id="quiz-{{ loop.index }}" style="border-color: rgba(188,140,255,0.4); color: #bc8cff;">🤖 Quiz from this</a>
+    </div>
+  </div>
+  {% endfor %}
 
-<h2>Search Results</h2>
+  {% else %}
+  {% if search_query %}
+  <div class="alert alert-warning" style="margin-top: 24px; max-width: 860px; margin-left: auto; margin-right: auto;">
+    <span>🔍</span> No documents found matching "<strong>{{ search_query }}</strong>". Try different keywords or broaden your search.
+  </div>
+  {% endif %}
+  {% endif %}
 
-<div class="library-grid">
-
-{% for r in results %}
-
-<div class="library-card">
-
-<h3>{{r.document}}</h3>
-
-<p class="score">Match Score: {{r.score}}%</p>
-<p class="category">Domain: {{r.domain}}</p>
-<p class="category">Audience: {{r.audience}}</p>
-{% if r.keywords %}
-<p class="tags">Keywords: {{r.keywords}}</p>
-{% endif %}
-
-<p class="snippet">
-{{r.snippet}}...
-</p>
-
-<div class="doc-buttons">
-
-<a href="/preview/{{r.document}}" target="_blank">
-Preview
-</a>
-
-<a href="/download/{{r.document}}">
-Download
-</a>
-
+  <div style="text-align: center;">
+    <a href="/dashboard" class="back-btn">← Back to Dashboard</a>
+  </div>
 </div>
-
-</div>
-
-{% endfor %}
-
-</div>
-
-{% else %}
-
-{% if request.method == "POST" %}
-
-<p class="no-results">
-No relevant documents found.
-</p>
-
-{% endif %}
-
-{% endif %}
-
-
-<a href="/dashboard" class="back-btn">Back to Dashboard</a>
-
 
 </body>
-
 </html>
