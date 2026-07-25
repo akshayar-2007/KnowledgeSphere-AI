@@ -12,5 +12,8 @@ python-pptx
 openpyxl
 google-genai
 python-dotenv
-
-
+chromadb>=0.4.0
+langchain>=0.2.0
+langchain-google-genai>=1.0.0
+langchain-core>=0.2.0
+werkzeug

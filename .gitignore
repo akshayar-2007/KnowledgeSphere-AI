@@ -1,1 +1,32 @@
+# Environment variables — NEVER commit secrets
 .env
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+venv/
+env/
+.venv/
+pip-log.txt
+
+# Database — contains real user data
+database.db
+
+# Vector store — large binary files, rebuilt on first run
+chroma_db/
+
+# Uploaded documents — user content
+uploads/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo

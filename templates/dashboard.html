@@ -31,6 +31,72 @@
       padding: 3px 10px; border-radius: 999px; font-size: 0.72rem; font-weight: 700;
       background: rgba(57,211,83,0.15); border: 1px solid rgba(57,211,83,0.3); color: #39d353;
     }
+    
+    /* Analytics Styling */
+    .analytics-section {
+      width: min(1140px, 100%);
+      margin: 32px auto 0;
+      text-align: left;
+    }
+    .analytics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 24px;
+      margin-top: 16px;
+    }
+    .analytics-card {
+      background: rgba(22, 27, 34, 0.6);
+      border: 1px solid rgba(48, 54, 61, 0.8);
+      border-radius: 14px;
+      padding: 20px;
+      backdrop-filter: blur(10px);
+    }
+    .analytics-card h3 {
+      font-size: 1.1rem;
+      margin-top: 0;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 1px solid rgba(48, 54, 61, 0.5);
+      padding-bottom: 10px;
+      color: #e6edf3;
+    }
+    .analytics-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+    }
+    .analytics-table th {
+      text-align: left;
+      color: #8b949e;
+      font-weight: 600;
+      padding: 6px 8px;
+      border-bottom: 1px solid rgba(48, 54, 61, 0.4);
+    }
+    .analytics-table td {
+      padding: 10px 8px;
+      border-bottom: 1px solid rgba(48, 54, 61, 0.2);
+      color: #c9d1d9;
+    }
+    .analytics-table tr:last-child td {
+      border-bottom: none;
+    }
+    .analytics-count {
+      color: #58a6ff;
+      font-weight: 700;
+      text-align: right;
+    }
+    .gap-badge {
+      display: inline-block;
+      padding: 2px 6px;
+      background: rgba(248, 81, 73, 0.15);
+      border: 1px solid rgba(248, 81, 73, 0.3);
+      color: #ff7b72;
+      border-radius: 4px;
+      font-size: 0.72rem;
+      font-weight: 700;
+    }
   </style>
 </head>
 <body>
@@ -60,12 +126,35 @@
     <h3 style="background: linear-gradient(135deg, #bc8cff, #58a6ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">{{ stats.domain_count }}</h3>
     <p>Knowledge Domains</p>
   </div>
+  <div class="stat-card" style="--accent-from: #FF6B35; --accent-to: #ff9a5c;">
+    <h3 style="background: linear-gradient(135deg, #FF6B35, #ff9a5c); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">{{ stats.chroma_vectors }}</h3>
+    <p>ChromaDB Vectors</p>
+  </div>
   {% if role == "administrator" %}
   <div class="stat-card">
     <h3 style="background: linear-gradient(135deg, #39d353, #58a6ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">{{ stats.user_count }}</h3>
     <p>Registered Stakeholders</p>
   </div>
   {% endif %}
+</div>
+
+<!-- AI System Status Bar -->
+<div style="width: min(1140px,100%); margin: 16px auto 0; display: flex; gap: 12px; flex-wrap: wrap;">
+  <div style="display:flex; align-items:center; gap:7px; padding:6px 14px; border-radius:999px; background:rgba(255,107,53,0.1); border:1px solid rgba(255,107,53,0.3); font-size:0.8rem;">
+    <span style="width:8px;height:8px;border-radius:50%;background:{% if stats.chroma_vectors > 0 %}#FF6B35{% else %}#6e7681{% endif %}; display:inline-block;"></span>
+    <span style="color:#FF6B35; font-weight:700;">ChromaDB</span>
+    <span style="color:#8b949e;">{% if stats.chroma_vectors > 0 %}{{ stats.chroma_vectors }} vectors indexed{% else %}No vectors yet{% endif %}</span>
+  </div>
+  <div style="display:flex; align-items:center; gap:7px; padding:6px 14px; border-radius:999px; background:rgba(28,60,60,0.3); border:1px solid rgba(88,166,255,0.25); font-size:0.8rem;">
+    <span style="width:8px;height:8px;border-radius:50%;background:{% if stats.langchain_enabled %}#39d353{% else %}#6e7681{% endif %}; display:inline-block;"></span>
+    <span style="color:#58a6ff; font-weight:700;">LangChain</span>
+    <span style="color:#8b949e;">{% if stats.langchain_enabled %}Quiz pipeline active{% else %}REST API fallback{% endif %}</span>
+  </div>
+  <div style="display:flex; align-items:center; gap:7px; padding:6px 14px; border-radius:999px; background:rgba(57,211,83,0.08); border:1px solid rgba(57,211,83,0.2); font-size:0.8rem;">
+    <span style="width:8px;height:8px;border-radius:50%;background:#39d353; display:inline-block;"></span>
+    <span style="color:#39d353; font-weight:700;">NLP Engine</span>
+    <span style="color:#8b949e;">SentenceTransformers all-MiniLM-L6-v2</span>
+  </div>
 </div>
 
 <!-- Action Cards -->
@@ -83,7 +172,7 @@
   <div class="dash-card">
     <span class="card-icon">🔍</span>
     <h2>Semantic Search</h2>
-    <p>Find relevant knowledge using hybrid AI-powered retrieval combining dense vectors and keyword matching.</p>
+    <p>ChromaDB-powered HNSW cosine retrieval with hybrid scoring — 85% dense vector + 15% keyword overlap.</p>
     <a href="/search" id="search-link">Search Knowledge →</a>
   </div>
 
@@ -97,7 +186,7 @@
   <div class="dash-card" style="border-color: rgba(188,140,255,0.3);">
     <span class="card-icon">🤖</span>
     <h2>AI Quiz Generator</h2>
-    <p>Generate MCQ assessments from uploaded documents using Gemini LLM. Track your knowledge comprehension.</p>
+    <p>LangChain LLMChain + PromptTemplate pipeline powered by Google Gemini. Converts documents into scored MCQ assessments.</p>
     <a href="/quiz" id="quiz-link" style="background: linear-gradient(135deg, #6f2da8, #bc8cff);">Generate Quiz →</a>
   </div>
 
@@ -144,6 +233,98 @@
       </div>
     </div>
     {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Search & Document Access Analytics -->
+{% if role == "administrator" %}
+<div class="analytics-section animate-in" style="animation-delay: 0.4s; margin-bottom: 50px;">
+  <div class="recent-header">
+    <h2>Search & Content Analytics</h2>
+    <span class="recent-badge" style="background: rgba(88,166,255,0.15); border-color: rgba(88,166,255,0.3); color: #58a6ff;">Admin</span>
+  </div>
+  
+  <div class="analytics-grid">
+    <!-- Top Search Queries -->
+    <div class="analytics-card">
+      <h3>🔍 Top Search Terms</h3>
+      <table class="analytics-table">
+        <thead>
+          <tr>
+            <th>Query</th>
+            <th style="text-align: right;">Searches</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for query, count in stats.top_queries %}
+          <tr>
+            <td>"{{ query }}"</td>
+            <td class="analytics-count">{{ count }}</td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="2" style="color: #8b949e; text-align: center; padding: 20px 0;">No searches logged yet.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Knowledge Gaps -->
+    <div class="analytics-card" style="border-color: rgba(248, 81, 73, 0.3);">
+      <h3>⚠️ Knowledge Gaps (0 Results)</h3>
+      <table class="analytics-table">
+        <thead>
+          <tr>
+            <th>Query</th>
+            <th style="text-align: right;">Occurrences</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for query, count in stats.zero_queries %}
+          <tr>
+            <td>
+              <span class="gap-badge">Gap</span>
+              "{{ query }}"
+            </td>
+            <td class="analytics-count" style="color: #ff7b72;">{{ count }}</td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="2" style="color: #8b949e; text-align: center; padding: 20px 0;">No zero-result queries logged.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Most Accessed Documents -->
+    <div class="analytics-card">
+      <h3>📄 Most Popular Documents</h3>
+      <table class="analytics-table">
+        <thead>
+          <tr>
+            <th>Document</th>
+            <th style="text-align: right;">Accesses</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for document, count in stats.top_docs %}
+          <tr>
+            <td style="word-break: break-all;">
+              <a href="/preview/{{ document }}" target="_blank" style="color: #58a6ff; text-decoration: none;">{{ document }}</a>
+            </td>
+            <td class="analytics-count">{{ count }}</td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="2" style="color: #8b949e; text-align: center; padding: 20px 0;">No document access logged yet.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
   </div>
 </div>
 {% endif %}

@@ -65,7 +65,7 @@
 
 <div class="search-page animate-in">
   <h1>Semantic Knowledge Search</h1>
-  <p>AI-powered retrieval combining dense vector embeddings with keyword overlap scoring.</p>
+  <p>ChromaDB HNSW vector retrieval &mdash; 85% cosine similarity + 15% KeyBERT keyword overlap scoring.</p>
 
   <div class="search-form-box">
     <form method="post" style="border:none; box-shadow:none; padding:0; margin:0; background:transparent; display:block; width:100%;">
@@ -74,6 +74,18 @@
         <input class="search-box" type="text" name="query" id="search-query"
                placeholder="Ask anything — e.g. 'What is gradient descent?'" 
                value="{{ search_query }}" required>
+      </div>
+
+      <div style="margin-top: 14px; display: flex; gap: 20px; font-size: 0.88rem; color: #8b949e; align-items: center; justify-content: center; background: rgba(33,38,45,0.4); padding: 8px 16px; border-radius: 8px; border: 1px solid rgba(48,54,61,0.5);">
+        <span style="font-weight: 600; color: #c9d1d9;">Retrieval Mode:</span>
+        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; color: #c9d1d9;">
+          <input type="radio" name="search_mode" value="hybrid" {% if search_mode != 'exact' %}checked{% endif %} style="margin: 0; cursor: pointer;">
+          🧠 Hybrid AI (Semantic + Keywords)
+        </label>
+        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; color: #c9d1d9;">
+          <input type="radio" name="search_mode" value="exact" {% if search_mode == 'exact' %}checked{% endif %} style="margin: 0; cursor: pointer;">
+          🎯 Exact Match (Substring Search)
+        </label>
       </div>
 
       <div class="filter-row">
@@ -106,7 +118,12 @@
   {% if results %}
   <div class="result-header">
     <h2 style="margin-bottom: 0;">Search Results</h2>
-    <span class="result-count">{{ results|length }} document{{ 's' if results|length != 1 else '' }} found</span>
+    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+      <span class="result-count">{{ results|length }} document{{ 's' if results|length != 1 else '' }} found</span>
+      <span style="display:inline-flex; align-items:center; gap:5px; padding:4px 12px; border-radius:999px; background:rgba(255,107,53,0.1); border:1px solid rgba(255,107,53,0.3); color:#FF6B35; font-size:0.78rem; font-weight:700;">
+        {% if search_engine == 'chromadb' %}🔶 ChromaDB HNSW{% elif search_engine == 'sqlite_exact' %}🎯 Exact Phrase Match{% else %}⚡ SQLite Fallback{% endif %}
+      </span>
+    </div>
   </div>
 
   {% for r in results %}
