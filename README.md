@@ -10,7 +10,7 @@
 [![LangChain](https://img.shields.io/badge/LangChain-RAG%20Pipeline-1C3C3C?style=for-the-badge&logo=chainlink&logoColor=white)](https://langchain.com)
 [![Google Gemini](https://img.shields.io/badge/Google%20Gemini-LLM-4285F4?style=for-the-badge&logo=google&logoColor=white)](https://aistudio.google.com)
 [![SQLite](https://img.shields.io/badge/SQLite-Metadata%20Store-003B57?style=for-the-badge&logo=sqlite&logoColor=white)](https://sqlite.org)
-[![MIT License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
+<!--[![MIT License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)-->
 
 *Centralizing institutional knowledge with ChromaDB-powered semantic retrieval, multi-format document ingestion, and a LangChain-driven AI quiz generator.*
 
@@ -20,7 +20,7 @@
 
 ## 🚀 Live Demo
 
-| Platform | URL | Status |
+<!--| Platform | URL | Status |
 |:---------|:----|:-------|
 | 🚂 Railway | [knowledgesphere-ai.up.railway.app](https://knowledgesphere-ai.up.railway.app) | 🟢 Live |
 | 🎬 Demo Video | [Watch on YouTube / Loom](#) | 📽️ Available |
@@ -30,7 +30,7 @@
 > Register a new account on the live site, or use the admin account created on first launch.
 > Set your `GEMINI_API_KEY` in Railway environment variables to enable the AI Quiz Generator.
 
----
+-->
 
 ## 📌 Project Overview
 
@@ -522,7 +522,8 @@ SQLite stores the full text, metadata, user data, quizzes, and analytics. Chroma
 
 ## 📄 License
 
-This project is licensed under the **MIT License**. See [LICENSE](LICENSE) for details.
+
+<!--This project is licensed under the **MIT License**. See [LICENSE](LICENSE) for details.-->  
 
 ---
 
